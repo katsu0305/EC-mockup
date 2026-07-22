@@ -1,0 +1,10 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+work/
+output/
+tmp/
+dist/
+build/
+docs/FTP接続情報.txt
