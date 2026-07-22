@@ -1,0 +1,89 @@
+source:
+  github:
+    repository: your-org/ECsite
+    ref: main
+    subpaths:
+      - original
+      - assets
+      - お知らせ
+    auth:
+      type: token-env
+      env_name: GITHUB_TOKEN
+
+data:
+  ec_database_tang:
+    mode: api
+    base_url_env: ECDB_API_BASE_URL
+    api_key_env: ECDB_API_KEY
+    latest_only: true
+    timeout_sec_env: ECDB_API_TIMEOUT_SEC
+    verify_ssl_env: ECDB_API_VERIFY_SSL
+
+images:
+  mode: download
+  prefer_public_url: true
+  public_base_url_env: MAKESHOP_PUBLIC_BASE_URL
+  ftp:
+    host_env: MAKESHOP_FTP_HOST
+    port_env: MAKESHOP_FTP_PORT
+    user_env: MAKESHOP_FTP_USER
+    password_env: MAKESHOP_FTP_PASSWORD
+    passive_env: MAKESHOP_FTP_PASSIVE
+  include_patterns:
+    - .jpg
+    - .jpeg
+    - .png
+    - .gif
+    - .webp
+  timeout_sec_env: MAKESHOP_IMAGE_TIMEOUT_SEC
+  retry_count_env: MAKESHOP_IMAGE_RETRY_COUNT
+  max_files: 500
+  total_size_limit_mb: 300
+
+reference:
+  live_site:
+    enabled: true
+    base_url_env: LIVE_SITE_BASE_URL
+    login_url_env: LIVE_SITE_LOGIN_URL
+    username_env: LIVE_SITE_USERNAME
+    password_env: LIVE_SITE_PASSWORD
+    login_user_field_env: LIVE_SITE_LOGIN_USER_FIELD
+    login_password_field_env: LIVE_SITE_LOGIN_PASSWORD_FIELD
+    login_submit_selector_env: LIVE_SITE_LOGIN_SUBMIT_SELECTOR
+    login_success_selector_env: LIVE_SITE_LOGIN_SUCCESS_SELECTOR
+    cookie_env: LIVE_SITE_COOKIE
+    user_agent_env: LIVE_SITE_USER_AGENT
+    extra_headers_env: LIVE_SITE_EXTRA_HEADERS
+    headless_env: LIVE_SITE_HEADLESS
+    wait_until_env: LIVE_SITE_WAIT_UNTIL
+    timeout_sec_env: LIVE_SITE_TIMEOUT_SEC
+    capture_css_env: LIVE_SITE_CAPTURE_CSS
+    capture_js_env: LIVE_SITE_CAPTURE_JS
+    capture_screenshot_env: LIVE_SITE_CAPTURE_SCREENSHOT
+    capture_pages:
+      - top
+      - category
+      - product
+
+build:
+  output_dir_env: APP_OUTPUT_DIR
+  temp_dir_env: APP_TEMP_DIR
+  work_dir_env: APP_WORK_DIR
+  pages:
+    - top
+    - category
+    - product
+    - news
+  disable_actions:
+    - cart
+    - member_entry
+    - login
+    - inquiry
+
+app:
+  env_env: APP_ENV
+  log_level_env: APP_LOG_LEVEL
+  mode: cli
+  gui:
+    enabled: false
+    remember_last_values: true
