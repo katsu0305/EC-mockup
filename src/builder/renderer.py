@@ -150,7 +150,10 @@ class Renderer:
         result = self._process(tmpl, vars_)
         # 商品情報ブロックを本文末に追記
         # 画像パスを補正
-        img_src = self._root_path(product.image_url) if product.image_url and not product.image_url.startswith("http") else product.image_url
+        if product.image_url and not product.image_url.startswith("http"):
+            img_src = self._root_path(product.image_url)
+        else:
+            img_src = self._root_path("assets/images/no-image.svg")
         extra = f"""
 <div class="mock-product-info container" style="padding:1rem">
   <h1 class="item-name">{html.escape(product.name)}</h1>
@@ -307,6 +310,11 @@ class Renderer:
         result = _replace_vars(result, vars_)
         result = _MAKESHOP_TAG_RE.sub("", result)
         result = _rewrite_makeshop_images(result, self._root_path("work/images"))
+        result = _rewrite_file_friendly_urls(
+            result,
+            self._root_path("index.html"),
+            self._root_path("assets/images/no-image.svg"),
+        )
         return result
 
     def _load_template(self, rel: str) -> str:
@@ -422,4 +430,96 @@ def _rewrite_makeshop_images(html_str: str, local_images_root: str) -> str:
             return m.group(0)
     
     return _MAKESHOP_IMG_RE.sub(replacer, html_str)
+
+
+def _rewrite_file_friendly_urls(html_str: str, top_url: str, no_image_url: str) -> str:
+    """file:// 直開きでも壊れにくいように URL を補正する。"""
+    result = html_str
+
+    # Google Fonts / Font Awesome はローカルCSSへ差し替え
+    result = result.replace(
+        'href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100;300;400;500;700;900&display=swap"',
+        f'href="{_root_relative_from(top_url, "assets/vendor/fonts/noto-sans-jp.css")}"',
+    )
+    result = result.replace(
+        'href="https://use.fontawesome.com/releases/v5.6.1/css/all.css"',
+        f'href="{_root_relative_from(top_url, "assets/vendor/fontawesome/all.min.css")}"',
+    )
+
+    # preconnect はローカル表示時に不要
+    result = re.sub(
+        r'<link[^>]+href=["\']https://fonts\.googleapis\.com["\'][^>]*>\s*',
+        '',
+        result,
+        flags=re.IGNORECASE,
+    )
+    result = re.sub(
+        r'<link[^>]+href=["\']https://fonts\.gstatic\.com["\'][^>]*>\s*',
+        '',
+        result,
+        flags=re.IGNORECASE,
+    )
+
+    # protocol-relative URL は file:// で壊れやすいため https 固定にする
+    result = re.sub(r'((?:src|href)=["\'])//', r'\1https://', result)
+
+    # purchase-info の決済ロゴをローカルSVGへ置換
+    payment_root = _root_relative_from(top_url, "assets/images/payment")
+    result = result.replace(
+        'https://gigaplus.makeshop.jp/groxidirect1/purchase-info/payment/visa.png',
+        f'{payment_root}/visa.svg',
+    )
+    result = result.replace(
+        'https://gigaplus.makeshop.jp/groxidirect1/purchase-info/payment/mastercard.png',
+        f'{payment_root}/mastercard.svg',
+    )
+    result = result.replace(
+        'https://gigaplus.makeshop.jp/groxidirect1/purchase-info/payment/jcb.png',
+        f'{payment_root}/jcb.svg',
+    )
+    result = result.replace(
+        'https://gigaplus.makeshop.jp/groxidirect1/purchase-info/payment/amex.png',
+        f'{payment_root}/amex.svg',
+    )
+    result = result.replace(
+        'https://gigaplus.makeshop.jp/groxidirect1/purchase-info/payment/diners.png',
+        f'{payment_root}/diners.svg',
+    )
+
+    # 公式サイト固定リンクはローカルの未対応ページへ寄せる
+    result = result.replace(
+        'https://4you.elecom.co.jp/view/policy',
+        _root_relative_from(top_url, 'policy.html'),
+    )
+    result = result.replace(
+        'https://www.elecom.co.jp/support/access/index.html',
+        _root_relative_from(top_url, 'company.html'),
+    )
+    result = result.replace(
+        'https://code.jquery.com/jquery-3.7.1.min.js',
+        _root_relative_from(top_url, 'assets/vendor/jquery/jquery-3.7.1.min.js'),
+    )
+
+    # まだ残る gigaplus 画像は no-image へフォールバックして外部参照を断つ
+    result = re.sub(
+        r'(<img[^>]*\ssrc=["\'])https://gigaplus\.makeshop\.jp/groxidirect1/[^"\']+(["\'][^>]*>)',
+        rf'\1{no_image_url}\2',
+        result,
+        flags=re.IGNORECASE,
+    )
+
+    # MakeShop 既定の noimage はルート絶対パスなのでローカル SVG に置換
+    result = result.replace('/view/images/common/noimage.png', no_image_url)
+
+    # ルートへの戻りリンクはローカル index.html へ寄せる
+    result = result.replace('href="/"', f'href="{top_url}"')
+    result = result.replace("href='/'", f"href='{top_url}'")
+
+    return result
+
+
+def _root_relative_from(top_url: str, rel: str) -> str:
+    """top_url (index までの相対) から任意パスへ解決した相対パスを返す。"""
+    depth = top_url.count("../")
+    return "../" * depth + rel
 

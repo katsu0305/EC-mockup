@@ -20,6 +20,65 @@ _NOT_IMPL_HTML = """<!doctype html>
 <p><a href="../index.html">トップへ戻る</a></p>
 </body></html>"""
 
+_OFFLINE_FONT_CSS = """/* Offline fallback stylesheet for Noto Sans JP references. */
+html,
+body,
+button,
+input,
+select,
+textarea {
+    font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+}
+"""
+
+_OFFLINE_FA_CSS = """/* Offline lightweight fallback for Font Awesome classes. */
+.fa,
+.fas,
+.far,
+.fal,
+.fab,
+[class^="fa-"],
+[class*=" fa-"] {
+    display: inline-block;
+    font-style: normal;
+    line-height: 1;
+}
+
+.fa::before,
+.fas::before,
+.far::before,
+.fal::before,
+.fab::before,
+[class^="fa-"]::before,
+[class*=" fa-"]::before {
+    content: "";
+}
+"""
+
+_OFFLINE_JQUERY_STUB = """/* Offline jQuery fallback: minimal no-op shim */
+(function (global) {
+    function StubCollection() {}
+    var p = StubCollection.prototype;
+    p.on = p.off = p.addClass = p.removeClass = p.toggleClass = p.slideToggle = p.hide = p.show = p.css = p.attr = p.removeAttr = p.text = p.html = p.append = p.prepend = p.trigger = function () { return this; };
+    p.val = function () { return ""; };
+    p.each = function () { return this; };
+    p.get = function () { return null; };
+    p.first = function () { return this; };
+    p.ready = function (fn) { if (typeof fn === "function") { fn(); } return this; };
+
+    function $(arg) {
+        if (typeof arg === "function") {
+            arg();
+            return new StubCollection();
+        }
+        return new StubCollection();
+    }
+
+    $.fn = StubCollection.prototype;
+    global.$ = global.jQuery = $;
+})(window);
+"""
+
 
 def build(cfg: AppConfig) -> Path:
     """
@@ -32,6 +91,11 @@ def build(cfg: AppConfig) -> Path:
 
     out = cfg.app_output_dir
     out.mkdir(parents=True, exist_ok=True)
+    for child in out.iterdir():
+        if child.is_dir():
+            shutil.rmtree(child)
+        else:
+            child.unlink()
 
     ctx = load_site_context(cfg)
     logger.info("ビルド開始: 商品%d件 カテゴリ%d件", len(ctx.products), len(ctx.categories))
@@ -113,7 +177,43 @@ def _copy_assets(source_dir: Path, out: Path, cfg: AppConfig) -> None:
         shutil.copytree(src_images, dst_images)
         logger.debug("work/images コピー完了")
 
+    _ensure_offline_assets(out)
+
     logger.debug("assets コピー完了")
+
+
+def _ensure_offline_assets(out: Path) -> None:
+    """file:// 表示で必要な最低限の代替アセットを保証する。"""
+    # fonts / fontawesome fallback CSS
+    fonts_css = out / "assets" / "vendor" / "fonts" / "noto-sans-jp.css"
+    fa_css = out / "assets" / "vendor" / "fontawesome" / "all.min.css"
+    fonts_css.parent.mkdir(parents=True, exist_ok=True)
+    fa_css.parent.mkdir(parents=True, exist_ok=True)
+    if not fonts_css.exists():
+        fonts_css.write_text(_OFFLINE_FONT_CSS, encoding="utf-8")
+    if not fa_css.exists():
+        fa_css.write_text(_OFFLINE_FA_CSS, encoding="utf-8")
+
+    # jquery fallback (CDN未参照化のためローカルファイルを常に用意)
+    jquery_js = out / "assets" / "vendor" / "jquery" / "jquery-3.7.1.min.js"
+    jquery_js.parent.mkdir(parents=True, exist_ok=True)
+    if not jquery_js.exists():
+        jquery_js.write_text(_OFFLINE_JQUERY_STUB, encoding="utf-8")
+
+    # payment logo placeholders
+    payment_dir = out / "assets" / "images" / "payment"
+    payment_dir.mkdir(parents=True, exist_ok=True)
+    logos = {
+        "visa.svg": '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40" role="img" aria-label="VISA logo placeholder"><rect width="120" height="40" rx="6" fill="#1a1f71"/><text x="60" y="26" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#ffffff" font-weight="700">VISA</text></svg>',
+        "mastercard.svg": '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40" role="img" aria-label="MasterCard logo placeholder"><rect width="120" height="40" rx="6" fill="#111111"/><circle cx="52" cy="20" r="10" fill="#eb001b"/><circle cx="68" cy="20" r="10" fill="#f79e1b" fill-opacity="0.9"/><text x="60" y="34" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#ffffff" font-weight="700">MASTERCARD</text></svg>',
+        "jcb.svg": '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40" role="img" aria-label="JCB logo placeholder"><rect width="120" height="40" rx="6" fill="#003a88"/><text x="60" y="26" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#ffffff" font-weight="700">JCB</text></svg>',
+        "amex.svg": '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40" role="img" aria-label="AMEX logo placeholder"><rect width="120" height="40" rx="6" fill="#2e77bb"/><text x="60" y="26" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#ffffff" font-weight="700">AMEX</text></svg>',
+        "diners.svg": '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40" role="img" aria-label="Diners logo placeholder"><rect width="120" height="40" rx="6" fill="#006272"/><text x="60" y="26" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#ffffff" font-weight="700">DINERS</text></svg>',
+    }
+    for name, content in logos.items():
+        target = payment_dir / name
+        if not target.exists():
+            target.write_text(content, encoding="utf-8")
 
 
 def _write(path: Path, content: str) -> None:

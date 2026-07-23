@@ -30,7 +30,6 @@
 - export-data
 - fetch-images
 - capture-live-site
-- serve
 
 ### 3-3. 設定読み込み基盤を作る
 
