@@ -1,10 +1,26 @@
 .env
 .venv/
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
 work/
 output/
 tmp/
 dist/
 build/
+*.log
+
+# 機密ファイル
 docs/FTP接続情報.txt
+docs/EC接続情報.txt
+secrets/
+
+# テストカバレッジ
+.coverage
+htmlcov/
+.pytest_cache/
+
+# PyInstaller
+build/
+dist/
+*.spec.bak

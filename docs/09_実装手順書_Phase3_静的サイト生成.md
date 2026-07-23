@@ -1,5 +1,8 @@
 # 実装手順書 Phase 3 静的サイト生成
 
+> 注記
+> 現行実装ではカテゴリページは `output/mock-site/categories/*.html`、商品詳細は `output/mock-site/products/*.html` の単一 HTML 出力で生成している。
+
 ## 1. 目的
 
 取得済みテンプレート、商品データ、画像を使って、閲覧可能な静的モックサイトを生成する。

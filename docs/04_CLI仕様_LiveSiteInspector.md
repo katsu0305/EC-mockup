@@ -23,15 +23,24 @@ Live Site Inspector は生成の正本ではなく、以下の補助用途に限
 
 ---
 
-## 3. 対象コマンド
+## 3. 現在の実装状況
 
-### 3-1. メインコマンド
+現行実装は `capture-live-site` のサブコマンド構成を持つ。
+
+- `run`: 実装済み
+- `login-check`: 実装済み
+- `diff`: 雛形のみ
+- `clean`: 雛形のみ
+
+## 4. 対象コマンド
+
+### 4-1. メインコマンド
 
 ```text
-ec-mockup capture-live-site [OPTIONS]
+ec-mockup capture-live-site run [OPTIONS]
 ```
 
-### 3-2. 補助コマンド
+### 4-2. 補助コマンド
 
 ```text
 ec-mockup capture-live-site login-check [OPTIONS]
@@ -41,9 +50,9 @@ ec-mockup capture-live-site clean [OPTIONS]
 
 ---
 
-## 4. コマンド仕様
+## 5. コマンド仕様
 
-### 4-1. capture-live-site
+### 5-1. run
 
 用途:
 
@@ -52,41 +61,30 @@ ec-mockup capture-live-site clean [OPTIONS]
 基本形:
 
 ```text
-ec-mockup capture-live-site --pages top,category,product
+ec-mockup capture-live-site run --pages top,category,product
 ```
 
 主なオプション:
 
-| オプション | 必須 | 内容 |
-|---|---|---|
-| --pages | 任意 | 取得対象ページ種別。top, category, product, news |
-| --urls-file | 任意 | 個別 URL 一覧ファイル |
-| --output-dir | 任意 | 保存先。未指定時は work/live-site |
-| --headless / --no-headless | 任意 | headless 実行切替 |
-| --capture-css / --no-capture-css | 任意 | CSS 保存有無 |
-| --capture-js / --no-capture-js | 任意 | JS 保存有無 |
-| --capture-screenshot | 任意 | スクリーンショット保存 |
-| --wait-until | 任意 | load, domcontentloaded, networkidle |
-| --timeout | 任意 | タイムアウト秒 |
-| --limit | 任意 | 取得件数上限 |
-| --force-login | 任意 | cookie があってもログイン処理を再実行 |
-| --save-session | 任意 | cookie / storage state を保存 |
+| オプション | 内容 |
+|---|---|
+| --pages | 取得対象ページ種別。`top,category,product,news` のカンマ区切り |
+| --headless / --no-headless | headless 実行切替 |
+| --capture-screenshot | スクリーンショット保存 |
+| --limit | 取得件数上限 |
 
 成功時出力:
 
 - 保存先ディレクトリ
 - 取得ページ数
 - 保存した CSS / JS 件数
-- 失敗 URL 一覧
 
 終了コード:
 
-- 0: 全件成功
-- 1: 一部失敗
-- 2: ログイン失敗
-- 3: 設定不備
+- 0: 成功
+- 1: 失敗
 
-### 4-2. login-check
+### 5-2. login-check
 
 用途:
 
@@ -100,52 +98,31 @@ ec-mockup capture-live-site login-check
 
 成功条件:
 
-- 指定した成功判定 selector が検出される
-- ログイン後の base URL 配下へ遷移できる
+- 成功判定 selector `.header-menu` が検出される
 
-終了コード:
-
-- 0: 成功
-- 2: 認証失敗
-- 3: 設定不備
-
-### 4-3. diff
+### 5-3. diff
 
 用途:
 
-- 取得済み実ショップスナップショットと output/mock-site の HTML を比較する
+- モックと実ショップの差分確認コマンドの入口
 
-基本形:
+現状:
 
-```text
-ec-mockup capture-live-site diff --page product --live work/live-site/product --mock output/mock-site/products/ABC123
-```
+- 実装は TODO ログ出力のみ
 
-初期比較対象:
-
-- title
-- 主要見出し
-- 商品名
-- 価格表示ブロック
-- パンくず
-- 画像数
-- 読み込まれている CSS / JS の差分サマリ
-
-### 4-4. clean
+### 5-4. clean
 
 用途:
 
-- work/live-site 配下の取得物を削除する
+- `work/live-site` クリーンアップコマンドの入口
 
-基本形:
+現状:
 
-```text
-ec-mockup capture-live-site clean --yes
-```
+- 実装は TODO ログ出力のみ
 
 ---
 
-## 5. 取得フロー
+## 6. 取得フロー
 
 ### 5-1. 標準フロー
 
@@ -169,55 +146,33 @@ ec-mockup capture-live-site clean --yes
 
 ---
 
-## 6. 保存構造
+## 7. 保存構造
 
 ```text
 work/
   live-site/
-    session/
-      storage-state.json
-      cookies.json
     top/
-      page.html
-      screenshot.png
+      index.html
       css/
-        main.css
-        vendor-01.css
       js/
-        app.js
-        vendor-01.js
-      meta.json
-    category/
-      category-001/
-        page.html
-        screenshot.png
-        css/
-        js/
-        meta.json
-    product/
-      BM-MNLBP01NBK/
-        page.html
-        screenshot.png
-        css/
-        js/
-        meta.json
+      screenshot.png
+    shop/
+      index.html
+      css/
+      js/
+    info/
+      index.html
+      css/
+      js/
 ```
 
-meta.json に保存する項目:
+補足:
 
-- requested_url
-- final_url
-- captured_at
-- login_method
-- css_files
-- js_files
-- screenshot_path
-- page_type
-- system_code or page_key
+- ルートパス `/` は `top` というディレクトリ名で保存される
+- そのほかは URL パスを slug 化したディレクトリ名になる
 
----
 
-## 7. .env 依存キー
+## 8. .env 依存キー
 
 本 CLI が主に使用する .env キーは以下。
 
@@ -225,38 +180,38 @@ meta.json に保存する項目:
 - LIVE_SITE_LOGIN_URL
 - LIVE_SITE_USERNAME
 - LIVE_SITE_PASSWORD
-- LIVE_SITE_LOGIN_USER_FIELD
-- LIVE_SITE_LOGIN_PASSWORD_FIELD
-- LIVE_SITE_LOGIN_SUBMIT_SELECTOR
-- LIVE_SITE_LOGIN_SUCCESS_SELECTOR
-- LIVE_SITE_COOKIE
-- LIVE_SITE_USER_AGENT
-- LIVE_SITE_EXTRA_HEADERS
+- コード上では selector は固定値を使用している
 - LIVE_SITE_HEADLESS
-- LIVE_SITE_WAIT_UNTIL
 - LIVE_SITE_TIMEOUT_SEC
-- LIVE_SITE_CAPTURE_CSS
-- LIVE_SITE_CAPTURE_JS
-- LIVE_SITE_CAPTURE_SCREENSHOT
 
----
+固定 selector:
 
-## 8. 取得対象ページの決め方
+- `[name='login_id']`
+- `[name='password']`
+- `button[type='submit']`
+- `.header-menu`
+
+
+## 9. 取得対象ページの決め方
 
 ### 8-1. ページ種別指定
 
 - top: トップページ 1 件
 - category: サンプルカテゴリページ複数件
-- product: サンプル商品詳細ページ複数件
+- product: URL 文字列として解決される追加指定用
 - news: お知らせ一覧と詳細
 
-### 8-2. URL 解決方法
+### 9-2. 既定パス
 
-優先順位:
+- top: `/`
+- category: `/shop/`
+- news: `/info/`
 
-1. --urls-file 指定
-2. 設定ファイルのサンプル URL 一覧
-3. 生成済み商品データから導出
+## 10. 注意点
+
+- 実ショップ取得物を生成の正本へ昇格させない
+- Playwright のブラウザセットアップが必要
+- `diff` と `clean` は現時点では未完成コマンド
 
 ---
 

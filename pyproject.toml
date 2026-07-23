@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ec-mockup"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.1",
+    "python-dotenv>=1.0",
+    "pyyaml>=6.0",
+    "requests>=2.31",
+    "playwright>=1.40",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "pytest-mock>=3.0",
+    "pyinstaller>=6.0",
+]
+
+[project.scripts]
+ec-mockup = "src.cli.main:cli"
+ec-mockup-gui = "src.gui.app:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
